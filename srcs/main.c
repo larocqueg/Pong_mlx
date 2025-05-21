@@ -181,6 +181,14 @@ void init_players()
 	hit_left = true;
 	ball.pos = (t_point){SCREEN_SIZE_X / 2 - (ballsize.x / 2), SCREEN_SIZE_Y / 2 - (ballsize.y / 2)};
 }
+
+int	close_window(void *param)
+{
+	(void)param;
+	exit(0); // or use a custom cleanup function before exit
+	return (0);
+}
+
 int	main(int ac, char **av)
 {
 	(void)av; (void) ac;
@@ -195,6 +203,7 @@ int	main(int ac, char **av)
 	mlx_loop_hook(cub.mlx_ptr, &game_loop, &cub);
 	mlx_hook(cub.win_ptr, 2, 1L << 0, &key_press, &cub);
 	mlx_hook(cub.win_ptr, 3, 1L << 1, &key_release, &cub);
+	mlx_hook(cub.win_ptr, 17, 0, &close_window, &cub);
 	mlx_loop(cub.mlx_ptr);
 }
 
