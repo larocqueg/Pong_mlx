@@ -1,4 +1,4 @@
-# 🏓 Pong
+# 🏓 Pong_mlx
 
 A simple Pong clone built using [`minilibx-linux`](https://github.com/42Paris/minilibx-linux), the minimalist graphics library from 42 Paris.
 
