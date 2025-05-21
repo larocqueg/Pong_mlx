@@ -50,3 +50,7 @@ make
 ```
 
 ---
+
+## Gameplay Preview
+
+![Pong Gameplay](./gif/pong.gif)
