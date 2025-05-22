@@ -3,10 +3,10 @@
 /*                                                        :::      ::::::::   */
 /*   main.c                                             :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
-/*   By: gde-la-r <gde-la-r@student.42porto.com>    +#+  +:+       +#+        */
+/*   By: rafaelfe <rafaelfe@student.42porto.com>    +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2025/05/21 11:43:31 by gde-la-r          #+#    #+#             */
-/*   Updated: 2025/05/21 11:43:35 by gde-la-r         ###   ########.fr       */
+/*   Created: 2025/05/20 19:24:34 by gde-la-r          #+#    #+#             */
+/*   Updated: 2025/05/22 16:29:32 by rafaelfe         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -26,12 +26,12 @@ char	score_1[] = "0";
 char	score_2[] = "0";
 bool	hit_left = true;
 bool	hit_right = true;
-float	ball_speed = 400;
-float	start_speed = 400;
+float	ball_speed = 300;
+float	start_speed = 300;
 float	boost = 0.03;
 float	ball_accel = 500;
 bool	started = false;
-float	speed = 500;
+float	speed = 300;
 float delta = 0;
 float accel = 1000;
 float friction = 1000;
@@ -167,10 +167,34 @@ int	key_release(int keysym, t_cub *cub)
 	return (0);
 }
 
-void	calculate_Delta(void)
+int time_accumulator;
+int frame_count;
+int fps;
+void calculate_Delta(void)
 {
-	delta = (get_time() - last_frame_time) / 1000.0f;
-	last_frame_time = get_time();
+
+int current_time = get_time(); // milliseconds
+int frame_time = current_time - last_frame_time;
+
+if (frame_time <= 0)
+frame_time = 1;  // avoid divide by zero or negative
+
+last_frame_time = current_time;
+
+// Delta in seconds (for animations, movement, etc)
+delta = frame_time / 1000.0f;
+
+// Accumulate time and count frames
+time_accumulator += frame_time;
+frame_count++;
+
+// Update FPS every 1 second
+if (time_accumulator >= 1000)
+{
+fps = frame_count;
+frame_count = 0;
+time_accumulator = 0;
+}
 }
 int update(t_cub *cub);
 
@@ -181,20 +205,14 @@ void init_players()
 	hit_left = true;
 	ball.pos = (t_point){SCREEN_SIZE_X / 2 - (ballsize.x / 2), SCREEN_SIZE_Y / 2 - (ballsize.y / 2)};
 }
-
-int	close_window(void *param)
-{
-	(void)param;
-	exit(0); // or use a custom cleanup function before exit
-	return (0);
-}
-
 int	main(int ac, char **av)
 {
 	(void)av; (void) ac;
 	srand(time(NULL));
 	init_window(&cub);
-
+	cub.image.img = mlx_new_image(cub.mlx_ptr, SCREEN_SIZE_X, SCREEN_SIZE_Y);
+	cub.image.addr = mlx_get_data_addr(cub.image.img, &cub.image.bits_per_pixel,
+		&cub.image.line_length, &cub.image.endian);
 	player.pos = (t_point){ offset, SCREEN_SIZE_Y / 2 };
 	player2.pos = (t_point){SCREEN_SIZE_X - (offset + padsize.x), SCREEN_SIZE_Y / 2};
 	player.direction = (t_point){0, 0};
@@ -203,7 +221,6 @@ int	main(int ac, char **av)
 	mlx_loop_hook(cub.mlx_ptr, &game_loop, &cub);
 	mlx_hook(cub.win_ptr, 2, 1L << 0, &key_press, &cub);
 	mlx_hook(cub.win_ptr, 3, 1L << 1, &key_release, &cub);
-	mlx_hook(cub.win_ptr, 17, 0, &close_window, &cub);
 	mlx_loop(cub.mlx_ptr);
 }
 
@@ -285,15 +302,14 @@ void	print_score()
 		ball_speed = start_speed;
 		return ;
 	}
+	char *fps_str = ft_itoa(fps);
+	mlx_string_put(cub.mlx_ptr, cub.win_ptr, 10 ,  10, 0xffffff, fps_str);
+	free(fps_str);
 }
 
 int renderer(t_cub *cub)
 {
-	cub->image.img = mlx_new_image(cub->mlx_ptr, SCREEN_SIZE_X, SCREEN_SIZE_Y);
-	cub->image.addr = mlx_get_data_addr(cub->image.img, &cub->image.bits_per_pixel,
-			&cub->image.line_length, &cub->image.endian);
-
-	drawrect(&cub->image, (t_point){0, 0}, (t_point){SCREEN_SIZE_X, SCREEN_SIZE_Y}, 0x2E8B47);
+	memset(cub->image.addr, 0x2E8B47, cub->image.line_length * SCREEN_SIZE_Y);
 	drawline(cub, (t_point){SCREEN_SIZE_X / 2, 0}, (t_point){SCREEN_SIZE_X / 2, SCREEN_SIZE_Y});
 	drawrect(&cub->image, player.pos, padsize, pad1_color);
 	drawrect(&cub->image, player2.pos, padsize, pad2_color);
@@ -302,7 +318,6 @@ int renderer(t_cub *cub)
 
 	mlx_put_image_to_window(cub->mlx_ptr, cub->win_ptr, cub->image.img, 0, 0);
 	print_score();
-	mlx_destroy_image(cub->mlx_ptr, cub->image.img);
 	return (0);
 }
 
@@ -316,7 +331,7 @@ void	hit_player()
 			hit_right = true;
 			ball.direction.y = (float)rand() / (float)RAND_MAX * 1.4f - 0.7f;
 			ball.direction.x = -ball.direction.x;
-			ball_speed += ball_speed * boost;
+			ball_speed += ball_speed * boost ;
 			ball.direction = (t_point)normalize(ball.direction);
 		}
 	}
@@ -362,7 +377,7 @@ void	move_ball()
 		ball.direction.y = -ball.direction.y;
 		ball.pos.y = SCREEN_SIZE_Y - ballsize.y;
 	}
-	ball.pos.x += ball.direction.x * ball_speed *  delta;
+	ball.pos.x += ball.direction.x * ball_speed * delta;
 	ball.pos.y += ball.direction.y * ball_speed * delta;
 
 }
